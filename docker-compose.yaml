@@ -1,0 +1,60 @@
+services:
+  db:
+    build: ${DB_BUILD_PATH}
+    container_name: ${DB_CONTAINER_NAME}
+    restart: ${RESTART_POLICY}
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - TZ=${TZ}
+    volumes:
+      - ${DB_VOLUME_PATH}:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: ${DB_MEM_LIMIT}
+        reservations:
+          memory: ${DB_MEM_RESERVATION}
+    networks:
+      - network
+
+  n8n:
+    build: ${N8N_BUILD_PATH}
+    container_name: ${N8N_CONTAINER_NAME}
+    restart: ${RESTART_POLICY}
+    user: "${PUID}:${PGID}"
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=${DB_CONTAINER_NAME}
+      - DB_POSTGRESDB_PORT=${DB_PORT_INTERNAL}
+      - DB_POSTGRESDB_DATABASE=${DB_NAME}
+      - DB_POSTGRESDB_USER=${DB_USER}
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD}
+      - N8N_HOST=${SUBDOMAIN}.${DOMAIN_NAME}
+      - N8N_PORT=${N8N_PORT_INTERNAL}
+      - N8N_PROTOCOL=${N8N_PROTOCOL}
+      - NODE_ENV=${N8N_NODE_ENV}
+      - WEBHOOK_URL=${N8N_PROTOCOL}://${SUBDOMAIN}.${DOMAIN_NAME}/
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - N8N_JWT_SECRET=${N8N_JWT_SECRET}
+      - TZ=${TZ}
+      - GENERIC_TIMEZONE=${TZ}
+    volumes:
+      - ${N8N_DATA_VOLUME}:/home/node/.n8n
+      - ${N8N_FILES_VOLUME}:/mnt/host
+    deploy:
+      resources:
+        limits:
+          memory: ${N8N_MEM_LIMIT}
+        reservations:
+          memory: ${N8N_MEM_RESERVATION}
+    networks:
+      - network
+    depends_on:
+      - db
+
+networks:
+  network:
+    external: true
+    name: ${NETWORK_NAME}
